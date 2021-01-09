@@ -1,0 +1,117 @@
+---
+title: "Practical Machine Learning - Prediction Assignment"
+author: "Ronald"
+date: "9 Jan 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. 
+
+In this project, the goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 young healthy participants who were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions:  
+
+(i)   exactly according to the specification (Class A); 
+(ii)  throwing the elbows to the front (Class B);
+(iii) lifting the dumbbell only halfway (Class C); 
+(iv)  lowering the dumbbell only halfway (Class D); and 
+(v)    throwing the hips to the front (Class E).
+
+More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+## Data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+### Load Data
+
+```{r message=FALSE}
+
+# Set Seed
+set.seed(2)
+
+# Load Libraries
+library(tidyverse)
+library(caret)
+library(rattle)
+
+# Load data
+train.data <- read.csv(file = "pml-training.csv", na.strings=c("NA","#DIV/0!",""))
+test.data <- read.csv(file = "pml-testing.csv", na.strings=c("NA","#DIV/0!",""))
+
+```
+
+### Data Cleaning
+```{r}
+
+#Remove Unnecessary columns
+train.data <- train.data [-c(1:7)]
+test.data <- test.data [-c(1:7)]
+
+#Remove NA columns
+train.data.clean <- train.data [colSums(is.na(train.data)) == 0]
+test.data.clean <- test.data [colSums(is.na(train.data)) == 0]
+
+```
+
+## Classification Models
+
+Classification models were built using the training data set. Decision Tree model was first used to try to classify the data.
+
+To allow the use of all training data set for model building, 10-fold cross validation technique was used to evaluate the model. Cross-validation partition the original sample into a training set to train the model and a test set to evaluate it.
+
+### Decision Tree
+
+```{r}
+
+control.par <- trainControl(method="cv", 10)
+
+Tree_model <- train(classe ~ ., data=train.data.clean, method="rpart", trControl=control.par)
+
+Tree_model
+
+fancyRpartPlot(Tree_model$finalModel, main = "Decision Tree Model\n", sub = "")
+
+confusionMatrix(Tree_model)
+
+```
+
+The accuracy of the decision tree model was only **0.5066**. With a low accuracy, the decision tree model was not suitable to be used as a prediction model.
+
+To increase the accuracy, Random forest technique was then used. Random forest technique is an ensemble learning method for classification that operate by constructing a multiple decision trees. The technique often yield better classification results than the single decision tree model.
+
+
+```{r}
+
+Rf_model <- train(classe ~ ., data=train.data.clean, method="rf",  trControl=control.par, ntree=100)
+
+Rf_model
+
+confusionMatrix(Rf_model)
+
+```
+
+The accuracy of the Random forest model was **0.9951**. The Random forest model is therefore fairly accurate.
+
+## Prediction
+
+Using the Random forest model built, prediction of the outcomes of the test data set was performed.
+
+```{r}
+
+classificaion.result <- predict(Rf_model, newdata = test.data.clean)
+
+classificaion.result
+
+```
+
